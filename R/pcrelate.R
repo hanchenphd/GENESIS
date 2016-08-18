@@ -15,8 +15,16 @@ pcrelate <- function(   genoData,
                         correct = TRUE,
                         verbose = TRUE){
 
-    # save the filter
-    if(class(genoData) == "SeqVarData"){ seqFilt.original <- seqGetFilter(genoData) }
+    if(class(genoData) == "SeqVarData"){
+        # save the filter
+        seqFilt.original <- seqGetFilter(genoData)
+        # reset so indexing works
+        snp.filter <- seqGetData(genoData, "variant.id")
+        snp.include <- if(is.null(snp.include)) snp.filter else intersect(snp.include, snp.filter)
+        scan.filter <- seqGetData(genoData, "sample.id")
+        scan.include <- if(is.null(scan.include)) scan.filter else intersect(scan.include, scan.filter)
+        seqResetFilter(genoData, verbose=FALSE)
+    }
 
     # MAF check
     if(MAF < 0 | MAF > 0.5){ stop("MAF must be in [0,0.5]") }
@@ -97,8 +105,6 @@ pcrelate <- function(   genoData,
 
     # set up GDS files
     if(write.to.gds){
-        # check that gdsfmt is loaded
-        requireNamespace("gdsfmt")
         # if no gds.prefix specified
         if(is.null(gds.prefix)){ gds.prefix <- "tmp" }
 
@@ -140,7 +146,7 @@ pcrelate <- function(   genoData,
                 geno <- getGenotypeSelection(genoData, snp = snp.include$index[snp.block.idx], scan = training.set$index, drop = FALSE)
             }else if(class(genoData) == "SeqVarData"){
                 # set a filter to this SNP block
-                seqSetFilter(genoData, variant.id = snp.include$value[snp.block.idx], sample.id = training.set$value, verbose = FALSE)
+                seqSetFilter(genoData, variant.sel = snp.include$index[snp.block.idx], sample.sel = training.set$index, verbose = FALSE)
                 append.gdsn(index.gdsn(gds, "snp.position"), val = seqGetData(genoData, "position"))
                 append.gdsn(index.gdsn(gds, "snp.chromosome"), val = seqGetData(genoData, "chromosome"))
                 # load genotype data
@@ -174,7 +180,7 @@ pcrelate <- function(   genoData,
         # cleanup
         filename <- gds$filename
         closefn.gds(gds)
-        cleanup.gds(filename, verbose=verbose)
+        cleanup.gds(filename, verbose=FALSE)
 
         # read in created GDS
         freqData <- GenotypeData(GdsGenotypeReader(filename))
@@ -254,7 +260,7 @@ pcrelate <- function(   genoData,
                     geno <- getGenotypeSelection(genoData, snp = snp.include$index[snp.block.idx], scan = scan.include$index[unique(c(i.block.idx,j.block.idx))], drop = FALSE)
                 }else if(class(genoData) == "SeqVarData"){
                     # set a filter to these scans and this variant block
-                    seqSetFilter(genoData, variant.id = snp.include$value[snp.block.idx], sample.id = scan.include$value[unique(c(i.block.idx,j.block.idx))], verbose = FALSE)
+                    seqSetFilter(genoData, variant.sel = snp.include$index[snp.block.idx], sample.sel = scan.include$index[unique(c(i.block.idx,j.block.idx))], verbose = FALSE)
                     geno <- t(altDosage(genoData))
                 }                
                 # index for which columns of geno are in each block                 			
@@ -597,7 +603,7 @@ pcrelate <- function(   genoData,
     	filename <- gds$filename
     	closefn.gds(gds)
     	close(freqData)
-    	cleanup.gds(filename, verbose=verbose)
+    	cleanup.gds(filename, verbose=FALSE)
 
         out <- paste("Output saved to", filename, sep=" ")
 

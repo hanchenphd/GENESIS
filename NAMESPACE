@@ -1,5 +1,42 @@
+import(grDevices)
+import(graphics)
+import(stats)
+import(utils)
+
+import(Biobase)
+import(gdsfmt)
+import(graph)
+importFrom(GWASTools, GdsGenotypeReader, GenotypeData)
+importClassesFrom(GWASTools,
+                  GdsGenotypeReader,
+                  GenotypeData,
+                  ScanAnnotationDataFrame)
+importMethodsFrom(GWASTools,
+                  close,
+                  getChromosome,
+                  getGenotypeSelection,
+                  getPosition,
+                  getScanID,
+                  getSnpID,
+                  getVariable,
+                  getSex,
+                  hasSex,
+                  XchromCode,
+                  YchromCode)
+import(SeqArray)
+importFrom(SeqVarTools, SeqVarData)
+importClassesFrom(SeqVarTools, SeqVarData)
+importMethodsFrom(SeqVarTools,
+                  altDosage,
+                  alleleDosage,
+                  sampleData,
+                  variantData)
+
 export(assocTestMM,
+       assocTestSeq,
+       assocTestSeqWindow,
        fitNullMM,
+       fitNullReg,
        king2mat,
        pcair, 
        pcairPartition,       
@@ -8,10 +45,7 @@ export(assocTestMM,
        pcrelateReadInbreed,
        pcrelateReadKinship,
        varCompCI)
-import(Biobase)
-import(GWASTools)
-import(gdsfmt)
-import(graph)
+
 S3method(plot, pcair)
 S3method(summary, pcair)
 S3method(print, pcair)

@@ -4,7 +4,7 @@
 \description{\code{assocTestSeq} performs aggregate association tests with sequencing data using the null model fit with \code{\link{fitNullMM}} or \code{\link{fitNullReg}}.}
 \usage{
 assocTestSeq(seqData, nullModObj, aggVarList, AF.sample = NULL,
-            AF.range = c(0,1), weight.beta = c(0.5, 0.5), weight.user = NULL,
+            AF.range = c(0,1), weight.beta = c(0.5, 0.5),
             test = "Burden", burden.test = "Score", rho = 0, 
             pval.method = "kuonen", verbose = TRUE)
 }
@@ -14,8 +14,7 @@ assocTestSeq(seqData, nullModObj, aggVarList, AF.sample = NULL,
     \item{aggVarList}{A list specifying the variant aggregation units to be tested; each element of the list represents one aggregate test. Each element of the list should be a data.frame that contains at least two columns: variant.id matching the variant.id in seqData for the variants that should be aggregated, and allele.index specifying which allele in seqData is to be tested at that variant.id.  Multiple alleles can be included at the same variant location by including multiple rows with the same variant.id and different allele.index values. allele.index=0 indicates the reference allele, allele.index=1 is the first alternate allele, allele.index=2 is the second alternate allele (for multiallelic variants), and so on up to the number of possible alleles per variant.}
     \item{AF.sample}{A vector of sample.id values specifying which samples should be used for allele frequency calculation. When NULL (the default), all samples included in the test are used. Allele frequency calculation will affect variant inclusion based on \code{AF.range} and variant weighting based on \code{weight.beta}.}
     \item{AF.range}{A numeric vector of length two specifying the lower and upper bounds on the alternate allele frequency for variants to be included in the analysis.  Variants with alternate allele frequencies outside of this range are given a weight of 0 (i.e. excluded).}
-    \item{weight.beta}{A numeric vector of length two specifying the two parameters of the Beta distribution used to determine variant weights; weights are given by \code{dbeta(AF, a, b)}, where AF is the alternate allele frequency, and a and b are the two parameters specified here. \code{weight.beta = c(1,25)} gives the Wu weights; \code{weight.beta = c(0.5, 0.5)} is proportional to the Madsen-Browning weights; and \code{weight.beta = c(1,1)} gives a weight of 1 to all variants. This input is ignored when \code{weight.user} is not NULL.}
-    \item{weight.user}{A character string specifying the name of a variable in the variantData slot of the seqData object to be used as variant weights.  When left NULL (the default), the weights specified by \code{weight.beta} will be used.}
+    \item{weight.beta}{A numeric vector of length two specifying the two parameters of the Beta distribution used to determine variant weights; weights are given by \code{dbeta(AF, a, b)}, where AF is the alternate allele frequency, and a and b are the two parameters specified here. \code{weight.beta = c(1,25)} gives the Wu weights; \code{weight.beta = c(0.5, 0.5)} is proportional to the Madsen-Browning weights; and \code{weight.beta = c(1,1)} gives a weight of 1 to all variants.}
     \item{test}{A character string specifying the type of test to be performed. The possibilities are "Burden" (default) or "SKAT".  When this is set to "SKAT" and the parameter \code{rho} has multiple values, a SKAT-O test is performed.}
     \item{burden.test}{A character string specifying the type of Burden test to perform when \code{test} = "Burden".  The possibilities are "Score", "Wald", and "Firth". "Score" can be used for any \code{nullModObj}. "Wald" can not be used when the \code{nullModObj} is from a mixed model with a binary outcome variable. "Firth" can only be used when the \code{nullModObj} is from a logistic regression with a binary outcome variable.}
     \item{rho}{A numeric value (or vector of numeric values) in [0,1] specifying the rho parameter for SKAT. When rho = 0, a standard SKAT test is performed. When rho = 1, a score burden test is performed. When rho is a vector of values, SKAT-O is performed using each of those values as the search space for the optimal rho.}
@@ -29,7 +28,6 @@ assocTestSeq(seqData, nullModObj, aggVarList, AF.sample = NULL,
     \item{param}{A list with model parameters including:}
     \item{AF.range}{The lower and upper bounds on the alternate allele frequency for variants that were included in the analysis.}
     \item{weight.beta}{The two parameters of the Beta distribution used to determine variant weights if used, NULL otherwise.}
-    \item{weight.user}{A character string specifying the name of the variable in the variantData slot of the seqData object used as variant weights if used, NULL otherwise.}
     \item{family}{Either "gaussian" for a continous outcome or "binomial" for a binary outcome.}
     \item{mixedmodel}{Logical indicating whether or not a mixed model was used to fit the null model.}
     \item{test}{Specifies whether Burden, SKAT, or SKAT-O tests were performed.}
@@ -82,51 +80,51 @@ assocTestSeq(seqData, nullModObj, aggVarList, AF.sample = NULL,
 %\references{}
 \author{Matthew P. Conomos}
 %\note{None now}
-% \examples{
-% library(SeqVarTools)
-% library(Biobase)
+\examples{
+library(SeqVarTools)
+library(Biobase)
 
-% # open a sequencing GDS file
-% gdsfile <- seqExampleFileName("gds")
-% gds <- seqOpen(gdsfile)
+# open a sequencing GDS file
+gdsfile <- seqExampleFileName("gds")
+gds <- seqOpen(gdsfile)
 
-% # simulate some phenotype data
-% data(pedigree)
-% pedigree <- pedigree[match(seqGetData(gds, "sample.id"), pedigree$sample.id),]
-% pedigree$outcome <- rnorm(nrow(pedigree))
+# simulate some phenotype data
+data(pedigree)
+pedigree <- pedigree[match(seqGetData(gds, "sample.id"), pedigree$sample.id),]
+pedigree$outcome <- rnorm(nrow(pedigree))
 
-% # construct a SeqVarData object
-% seqData <- SeqVarData(gds, sampleData=AnnotatedDataFrame(pedigree))
+# construct a SeqVarData object
+seqData <- SeqVarData(gds, sampleData=AnnotatedDataFrame(pedigree))
 
-% # fit the null model
-% nullmod <- fitNullReg(sampleData(seqData), outcome="outcome", covars="sex")
+# fit the null model
+nullmod <- fitNullReg(sampleData(seqData), outcome="outcome", covars="sex")
 
-% # select variant aggregation units (allele.index=1 tests the alternate allele)
-% agg <- list(data.frame(variant.id=1:100, allele.index=1),
-%             data.frame(variant.id=101:200, allele.index=1),
-%             data.frame(variant.id=201:300, allele.index=1))
+# select variant aggregation units (allele.index=1 tests the alternate allele)
+agg <- list(data.frame(variant.id=1:100, allele.index=1),
+            data.frame(variant.id=101:200, allele.index=1),
+            data.frame(variant.id=201:300, allele.index=1))
 
-% # burden test
-% assoc <- assocTestSeq(seqData, nullmod, agg, test="Burden")
-% assoc$results
-% lapply(assoc$variantInfo, head)
+# burden test
+assoc <- assocTestSeq(seqData, nullmod, agg, test="Burden")
+assoc$results
+lapply(assoc$variantInfo, head)
 
-% # SKAT test
-% assoc <- assocTestSeq(seqData, nullmod, agg, test="SKAT")
-% assoc$results
+# SKAT test
+assoc <- assocTestSeq(seqData, nullmod, agg, test="SKAT")
+assoc$results
 
-% # SKAT-O test
-% assoc <- assocTestSeq(seqData, nullmod, agg, test="SKAT", rho=seq(0, 1, 0.25))
-% assoc$results
+# SKAT-O test
+assoc <- assocTestSeq(seqData, nullmod, agg, test="SKAT", rho=seq(0, 1, 0.25))
+assoc$results
 
-% # user-specified weights
-% variant.id <- seqGetData(gds, "variant.id")
-% weights <- data.frame(variant.id, weight=runif(length(variant.id)))
-% variantData(seqData) <- AnnotatedDataFrame(weights)
-% assoc <- assocTestSeq(seqData, nullmod, agg, test="Burden", weight.user="weight")
-% assoc$results
-% lapply(assoc$variantInfo, head)
+# user-specified weights
+variant.id <- seqGetData(gds, "variant.id")
+weights <- data.frame(variant.id, weight=runif(length(variant.id)))
+variantData(seqData) <- AnnotatedDataFrame(weights)
+assoc <- assocTestSeq(seqData, nullmod, agg, test="Burden")
+assoc$results
+lapply(assoc$variantInfo, head)
 
-% seqClose(seqData)
-% }
+seqClose(seqData)
+}
 \keyword{association}

@@ -4,7 +4,6 @@ assocTestSeq <- function(seqData,
                          AF.sample = NULL,
                          AF.range = c(0,1),
                          weight.beta = c(0.5,0.5),
-                         weight.user = NULL,
                          test = "Burden",
                          burden.test = "Score",
                          rho = 0,
@@ -17,9 +16,9 @@ assocTestSeq <- function(seqData,
         seqResetFilter(seqData, verbose=FALSE)
 
 	# check the parameters
-	param <- .paramChecks(seqData = seqData, AF.range = AF.range, weight.beta = weight.beta, weight.user = weight.user, 
-                              test = test, burden.test = burden.test, family = nullModObj$family$family, 
-                              mixedmodel = nullModObj$family$mixedmodel, rho = rho, pval.method = pval.method)
+	param <- .paramChecks(seqData = seqData, AF.range = AF.range, weight.beta = weight.beta,
+							test = test, burden.test = burden.test, family = nullModObj$family$family,
+							mixedmodel = nullModObj$family$mixedmodel, rho = rho, pval.method = pval.method)
 
 	# set up output
 	out <- list()
@@ -48,8 +47,8 @@ assocTestSeq <- function(seqData,
 
 	# set up main results matrix
 	nv <- c("n.site", "n.sample.alt")
-        nv <- .outputColumns(nv, AF.range = AF.range, weight.beta = weight.beta, weight.user = weight.user,
-                             test = test, burden.test = burden.test, rho = rho, verbose=verbose)
+	nv <- .outputColumns(nv, AF.range = AF.range, weight.beta = weight.beta,
+							test = test, burden.test = burden.test, rho = rho, verbose=verbose)
 
 	# determine the number of variant blocks
 	nblocks <- length(aggVarList)
@@ -136,17 +135,12 @@ assocTestSeq <- function(seqData,
 			resMain[b,"n.sample.alt"] <- sum(rowSums(geno, na.rm=TRUE) > 0)
 
 			# variant weights
-			if(is.null(weight.user)){
-				#freq <- ifelse(freq < 0.5, freq, 1-freq) - should MAF be used even if alternate allele is not minor?
-				# Beta weights
-				weights <- dbeta(freq, weight.beta[1], weight.beta[2])
-			}else{
-				# user supplied weights - read in from variantData, repeat to match nAllele, subset to those included
-				weights <- rep(pData(variantData(seqData))[,weight.user], nAllele)[include]
-			}
+			#freq <- ifelse(freq < 0.5, freq, 1-freq) - should MAF be used even if alternate allele is not minor?
+			# Beta weights
+			weights <- dbeta(freq, weight.beta[1], weight.beta[2])
 			variantRes[include,"weight"] <- weights
 			variantInfo[[b]] <- as.data.frame(variantRes)
-                        variantInfo[[b]][,"chr"] <- chromChar
+			variantInfo[[b]][,"chr"] <- chromChar
 		}
 
 		# mean impute missing genotype values
@@ -208,7 +202,6 @@ assocTestSeqWindow <- function(seqData,
                                AF.sample = NULL,
                                AF.range = c(0,1),
                                weight.beta = c(0.5, 0.5),
-                               weight.user = NULL,
                                test = "Burden",
                                burden.test = "Score",
                                rho = 0,
@@ -221,9 +214,9 @@ assocTestSeqWindow <- function(seqData,
         seqResetFilter(seqData, verbose=FALSE)
 
 	# check the parameters
-	param <- .paramChecks(seqData = seqData, AF.range = AF.range, weight.beta = weight.beta, weight.user = weight.user, 
-                              test = test, burden.test = burden.test, family = nullModObj$family$family, 
-                              mixedmodel = nullModObj$family$mixedmodel, rho = rho, pval.method = pval.method)
+	param <- .paramChecks(seqData = seqData, AF.range = AF.range, weight.beta = weight.beta,
+							test = test, burden.test = burden.test, family = nullModObj$family$family,
+							mixedmodel = nullModObj$family$mixedmodel, rho = rho, pval.method = pval.method)
 
 	# set up output
 	out <- list()
@@ -267,8 +260,8 @@ assocTestSeqWindow <- function(seqData,
 
 	# set up main results matrix
 	nv <- c("chr", "window.start", "window.stop", "n.site", "dup")
-        nv <- .outputColumns(nv, AF.range = AF.range, weight.beta = weight.beta, weight.user = weight.user,
-                             test = test, burden.test = burden.test, rho = rho, verbose=verbose)
+        nv <- .outputColumns(nv, AF.range = AF.range, weight.beta = weight.beta,
+								test = test, burden.test = burden.test, rho = rho, verbose=verbose)
 	resMain <- matrix(NA, nrow = 0, ncol = length(nv), dimnames = list(NULL,nv))
 
 	# set up results for variants
@@ -393,14 +386,9 @@ assocTestSeqWindow <- function(seqData,
 					freq <- freq[include]
 
 					# variant weights
-					if(is.null(weight.user)){
-						#freq <- ifelse(freq < 0.5, freq, 1-freq) - should MAF be used even if alternate allele is not minor?
-						# Beta weights
-						weights.add <- dbeta(freq, weight.beta[1], weight.beta[2])
-					}else{
-						# user supplied weights - read in from variantData, repeat to match nAllele, subset to those included
-						weights.add <- rep(pData(variantData(seqData))[,weight.user], nAllele)[include]
-					}
+					#freq <- ifelse(freq < 0.5, freq, 1-freq) - should MAF be used even if alternate allele is not minor?
+					# Beta weights
+					weights.add <- dbeta(freq, weight.beta[1], weight.beta[2])
 					variantRes[include,"weight"] <- weights.add
 
 					# mean impute missing genotype values
@@ -499,7 +487,7 @@ assocTestSeqWindow <- function(seqData,
 
 
 
-.paramChecks <- function(seqData, AF.range, weight.beta, weight.user, test, burden.test, family, mixedmodel, rho, pval.method){
+.paramChecks <- function(seqData, AF.range, weight.beta, test, burden.test, family, mixedmodel, rho, pval.method){
 	# list of parameters
 	param <- list()
 	
@@ -508,16 +496,8 @@ assocTestSeqWindow <- function(seqData,
 	param[["AF.range"]] <- AF.range
 
 	# check weights
-	if(is.null(weight.user)){
-		if(length(weight.beta) != 2){ stop("weight.beta must be a vector of length 2 specifying the Beta parameters for the weight function")}
-		param[["weight.beta"]] <- weight.beta
-		param[["weight.user"]] <- FALSE
-	}else{
-		param[["weight.beta"]] <- FALSE
-		if(!(weight.user %in% varLabels(variantData(seqData)))){ stop("The variable specified for weight.user must be in the variantData slot of seqData") }
-		param[["weight.user"]] <- weight.user
-	}
-
+	if(length(weight.beta) != 2){ stop("weight.beta must be a vector of length 2 specifying the Beta parameters for the weight function")}
+	param[["weight.beta"]] <- weight.beta
 	param[["family"]] <- family
 	param[["mixedmodel"]] <- mixedmodel
 	
@@ -555,7 +535,7 @@ assocTestSeqWindow <- function(seqData,
 
 
 
-.outputColumns <- function(nv, AF.range, weight.beta, weight.user, test, burden.test, rho, verbose){
+.outputColumns <- function(nv, AF.range, weight.beta, test, burden.test, rho, verbose){
 	if(test == "Burden"){
 		nv <- append(nv, "burden.skew")
 		if(burden.test == "Score"){		
@@ -566,31 +546,19 @@ assocTestSeqWindow <- function(seqData,
 			nv <- append(nv, c("Est", "SE", "Firth.stat", "Firth.pval"))
 		}
 		if(verbose){
-			if(is.null(weight.user)){
-				message("Performing ", burden.test, " Burden Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution")
-			}else{
-				message("Performing ", burden.test, " Burden Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights specified by ", weight.user, " in the variantData slot of seqData")			
-			}
-		}	
+			message("Performing ", burden.test, " Burden Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution")
+		}
 		
 	}else if(test == "SKAT"){
 		nv <- append(nv, c(paste("Q",rho,sep="_"), paste("pval",rho,sep="_"), paste("err",rho,sep="_")))
 		if(length(rho) == 1){			
 			if(verbose){
-				if(is.null(weight.user)){
-					message("Performing SKAT Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution and rho = ", rho)
-				}else{
-					message("Performing SKAT Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights specified by ", weight.user, " in the variantData slot of seqData and rho = ", rho)
-				}
+				message("Performing SKAT Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution and rho = ", rho)
 			}
 		}else{
 			nv <- append(nv, c("min.pval", "opt.rho", "pval_SKATO"))
 			if(verbose){
-				if(is.null(weight.user)){
-					message("Performing SKAT-O Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution and rho = (", paste(rho, collapse=", "), ")")
-				}else{
-					message("Performing SKAT-O Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights specified by ", weight.user, " in the variantData slot of seqData and rho = (", paste(rho, collapse=", "), ")")
-				}
+				message("Performing SKAT-O Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution and rho = (", paste(rho, collapse=", "), ")")
 			}
 		}		
 	}

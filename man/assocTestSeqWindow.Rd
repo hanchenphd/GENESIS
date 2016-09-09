@@ -5,7 +5,7 @@
 \usage{
 assocTestSeqWindow(seqData, nullModObj, variant.include = NULL, chromosome = NULL,
                     window.size = 50, window.shift = 20, AF.sample = NULL, AF.range = c(0,1), 
-                    weight.beta = c(0.5, 0.5), weight.user = NULL, test = "Burden", 
+                    weight.beta = c(0.5, 0.5), test = "Burden", 
                     burden.test = "Score", rho = 0, pval.method = "kuonen", verbose = TRUE)
 }
 \arguments{
@@ -17,8 +17,7 @@ assocTestSeqWindow(seqData, nullModObj, variant.include = NULL, chromosome = NUL
     \item{window.shift}{The distance, in kb, that the window is shifted to create each new window.}
     \item{AF.sample}{A vector of sample.id values specifying which samples should be used for allele frequency calculation. When NULL (the default), all samples included in the test are used. Allele frequency calculation will affect variant inclusion based on \code{AF.range} and variant weighting based on \code{weight.beta}.}
     \item{AF.range}{A numeric vector of length two specifying the lower and upper bounds on the alternate allele frequency for variants to be included in the analysis. Variants with alternate allele frequencies outside of this range are given a weight of 0 (i.e. excluded).}
-    \item{weight.beta}{A numeric vector of length two specifying the two parameters of the Beta distribution used to determine variant weights; weights are given by \code{dbeta(AF, a, b)}, where AF is the alternate allele frequency, and a and b are the two parameters specified here. \code{weight.beta = c(1,25)} gives the Wu weights; \code{weight.beta = c(0.5, 0.5)} is proportional to the Madsen-Browning weights; and \code{weight.beta = c(1,1)} gives a weight of 1 to all variants. This input is ignored when \code{weight.user} is not NULL.}
-    \item{weight.user}{A character string specifying the name of a variable in the variantData slot of the seqData object to be used as variant weights.  When left NULL (the default), the weights specified by \code{weight.beta} will be used.}
+    \item{weight.beta}{A numeric vector of length two specifying the two parameters of the Beta distribution used to determine variant weights; weights are given by \code{dbeta(AF, a, b)}, where AF is the alternate allele frequency, and a and b are the two parameters specified here. \code{weight.beta = c(1,25)} gives the Wu weights; \code{weight.beta = c(0.5, 0.5)} is proportional to the Madsen-Browning weights; and \code{weight.beta = c(1,1)} gives a weight of 1 to all variants.}
     \item{test}{A character string specifying the type of test to be performed. The possibilities are "Burden" (default) or "SKAT".  When this is set to "SKAT" and the parameter \code{rho} has multiple values, a SKAT-O test is performed.}
     \item{burden.test}{A character string specifying the type of Burden test to perform when \code{test} = "Burden".  The possibilities are "Score", "Wald", and "Firth". "Score" can be used for any \code{nullModObj}. "Wald" can not be used when the \code{nullModObj} is from a mixed model with a binary outcome variable. "Firth" can only be used when the \code{nullModObj} is from a logistic regression with a binary outcome variable.}
     \item{rho}{A numeric value (or vector of numeric values) in [0,1] specifying the rho parameter for SKAT. When rho = 0, a standard SKAT test is performed. When rho = 1, a score burden test is performed. When rho is a vector of values, SKAT-O is performed using each of those values as the search space for the optimal rho.}
@@ -32,7 +31,6 @@ assocTestSeqWindow(seqData, nullModObj, variant.include = NULL, chromosome = NUL
     \item{param}{A list with model parameters including:}
     \item{AF.range}{The lower and upper bounds on the alternate allele frequency for variants that were included in the analysis.}
     \item{weight.beta}{The two parameters of the Beta distribution used to determine variant weights if used, NULL otherwise.}
-    \item{weight.user}{A character string specifying the name of the variable in the variantData slot of the seqData object used as variant weights if used, NULL otherwise.}
     \item{family}{Either "gaussian" for a continous outcome or "binomial" for a binary outcome.}
     \item{mixedmodel}{Logical indicating whether or not a mixed model was used to fit the null model.}
     \item{test}{Specifies whether Burden, SKAT, or SKAT-O tests were performed.}
@@ -128,7 +126,7 @@ head(assoc$results)
 variant.id <- seqGetData(gds, "variant.id")
 weights <- data.frame(variant.id, weight=runif(length(variant.id)))
 variantData(seqData) <- AnnotatedDataFrame(weights)
-assoc <- assocTestSeqWindow(seqData, nullmod, chromosome=22, test="Burden", weight.user="weight")
+assoc <- assocTestSeqWindow(seqData, nullmod, chromosome=22, test="Burden")
 head(assoc$results)
 head(assoc$variantInfo)
 

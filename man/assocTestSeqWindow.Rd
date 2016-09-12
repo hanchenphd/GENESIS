@@ -125,7 +125,6 @@ head(assoc$results)
 # user-specified weights
 variant.id <- seqGetData(gds, "variant.id")
 weights <- data.frame(variant.id, weight=runif(length(variant.id)))
-variantData(seqData) <- AnnotatedDataFrame(weights)
 assoc <- assocTestSeqWindow(seqData, nullmod, chromosome=22, test="Burden")
 head(assoc$results)
 head(assoc$variantInfo)

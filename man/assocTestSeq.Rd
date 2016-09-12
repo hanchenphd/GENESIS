@@ -120,7 +120,6 @@ assoc$results
 # user-specified weights
 variant.id <- seqGetData(gds, "variant.id")
 weights <- data.frame(variant.id, weight=runif(length(variant.id)))
-variantData(seqData) <- AnnotatedDataFrame(weights)
 assoc <- assocTestSeq(seqData, nullmod, agg, test="Burden")
 assoc$results
 lapply(assoc$variantInfo, head)

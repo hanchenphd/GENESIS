@@ -1,0 +1,61 @@
+import(grDevices)
+import(graphics)
+importFrom(methods, as)
+import(stats)
+importFrom(utils, read.table)
+
+import(Biobase)
+import(gdsfmt)
+import(graph)
+
+importFrom(GWASTools, GdsGenotypeReader, GenotypeData)
+importClassesFrom(GWASTools,
+                  GdsGenotypeReader,
+                  GenotypeData,
+                  ScanAnnotationDataFrame)
+importMethodsFrom(GWASTools,
+                  close,
+                  getChromosome,
+                  getGenotypeSelection,
+                  getPosition,
+                  getScanID,
+                  getSnpID,
+                  getVariable,
+                  getSex,
+                  hasSex,
+                  XchromCode,
+                  YchromCode)
+
+import(SeqArray)
+importFrom(SeqVarTools, SeqVarData)
+importClassesFrom(SeqVarTools, SeqVarData)
+importMethodsFrom(SeqVarTools,
+                  altDosage,
+                  alleleDosage,
+                  sampleData,
+                  variantData)
+
+importFrom(BiocGenerics, start, end)
+importFrom(GenomicRanges, GRanges)
+importFrom(IRanges, IRanges, findOverlaps)
+importFrom(S4Vectors, queryHits, subjectHits)
+
+export(admixMapMM,
+       assocTestMM,
+       assocTestSeq,
+       assocTestSeqWindow,
+       fitNullMM,
+       fitNullReg,
+       king2mat,
+       pcair, 
+       pcairPartition,       
+       pcrelate,
+       pcrelateMakeGRM,
+       pcrelateReadInbreed,
+       pcrelateReadKinship,
+       varCompCI)
+
+S3method(plot, pcair)
+S3method(summary, pcair)
+S3method(print, pcair)
+S3method(print, summary.pcair)

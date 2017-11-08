@@ -169,7 +169,9 @@ assocTestSeq <- function(seqData,
 			}else{
 				testout <- .runSKATTest(scores = U, geno.adj = geno, weights = weights, rho = rho, pval.method = pval.method, optimal = TRUE)
 			}
-		}
+		}else if(test == "Hybrid"){
+			testout <- .testVariantSetHybrid(nullprep = proj, G = geno, weights = weights, pval.method = pval.method)
+			}
 
 		# update main results
 		for(val in names(testout)){ resMain[b,val] <- testout[val] }
@@ -419,6 +421,8 @@ assocTestSeqWindow <- function(seqData,
 					U <- c(U, as.vector(crossprod(geno.add, proj$resid)))
 					# add genotypes of variants to add
 					geno <- cbind(geno, crossprod(proj$Mt, geno.add))
+				}else if(test == "Hybrid"){
+					geno <- cbind(geno, geno.add)	
 				}
 				# add weights of variants to add
 				weights <- c(weights, weights.add)
@@ -443,6 +447,8 @@ assocTestSeqWindow <- function(seqData,
 						}else{
 							testout <- .runSKATTest(scores = U, geno.adj = geno, weights = weights, rho = rho, pval.method = pval.method, optimal = TRUE)
 						}
+					}else if(test == "Hybrid"){
+						testout <- .testVariantSetHybrid(nullprep = proj, G = geno, weights = weights, pval.method = pval.method)
 					}
 
 				}else{
@@ -539,6 +545,13 @@ assocTestSeqWindow <- function(seqData,
 		param[["rho"]] <- rho
 		param[["pval.method"]] <- pval.method
 	}
+	if(test == "Hybrid"){
+		# check pval.method
+		if(!(pval.method %in% c("kuonen","davies","liu"))){ stop("pval.method must be one of 'kuonen', 'davies', or 'liu'")}
+		if(!requireNamespace("survey")) stop("package 'survey' must be installed to calculate p-values for Hybrid")
+		if(!requireNamespace("CompQuadForm")) stop("package 'CompQuadForm' must be installed to calculate p-values for Hybrid")
+		param[["pval.method"]] <- pval.method
+	}
 	
 	return(param)	
 }
@@ -583,6 +596,15 @@ assocTestSeqWindow <- function(seqData,
 				}
 			}
 		}		
+	}else if(test == "Hybrid"){
+		nv <- append(nv, c("pval_burden", "pval_hybrid", "err"))
+		if(verbose){
+			if(is.null(weight.user)){
+				message("Performing Hybrid Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights from a Beta(", weight.beta[1], ",", weight.beta[2], ") distribution")
+			}else{
+				message("Performing Hybrid Tests for Variants with AF in [", AF.range[1], ",", AF.range[2], "] using weights specified by ", weight.user, " in the variantData slot of seqData")
+			}
+		}
 	}
 
         return(nv)
@@ -804,7 +826,53 @@ assocTestSeqWindow <- function(seqData,
 	return(out)	
 }
 
+				       
+.testVariantSetHybrid <- function(nullprep, G, weights, pval.method) {
+	G <- t(t(G) * weights)
+    	U <- as.vector(crossprod(G, nullprep$resid))
+    	G <- crossprod(nullprep$Mt, G)
+    	V <- crossprod(G)
+    	burden.scores <- sum(U)
+    	burden.distMat <- sum(V)
+    	burden.pval <- pchisq(burden.scores^2/burden.distMat, df=1, lower.tail=FALSE)
+    	V.rowSums <- rowSums(V)
+    	U <- U - V.rowSums * burden.scores / burden.distMat
+    	V <- V - tcrossprod(V.rowSums) / burden.distMat
+    	if(mean(abs(V)) < sqrt(.Machine$double.eps)) return(list(pval_burden=burden.pval, pval_hybrid=burden.pval, err=0))
+    	Q <- sum(U^2)
+    	# lambda for p value calculation
+    	lambda <- eigen(V, only.values = TRUE, symmetric=TRUE)$values
+    	lambda <- lambda[lambda > 0]
+    	if(!requireNamespace("survey")) stop("package 'survey' must be installed to calculate p-values for SKAT")
+    	if(!requireNamespace("CompQuadForm")) stop("package 'CompQuadForm' must be installed to calculate p-values for SKAT")
+    	err <- 0
+    	if(pval.method == "kuonen"){
+    	    	pval <- survey:::saddle(x = Q, lambda = lambda)
+    	    	err <- ifelse(is.na(pval), 1, 0)
+    	}else if(pval.method == "davies"){
+    	    	tmp <- suppressWarnings(CompQuadForm::davies(q = Q, lambda = lambda, acc = 1e-06))
+        	pval <- tmp$Qq
+        	if((tmp$ifault > 0) | (pval <= 0) | (pval >= 1)) {
+            		pval <- survey:::saddle(x = Q, lambda = lambda)
+        	}
+        	err <- ifelse(is.na(pval), 1, 0)
 
+    	}else if(pval.method == "liu"){
+        	pval <- CompQuadForm::liu(q = Q, lambda = lambda)
+        	err <- 0
+    	}
+    
+    	if(err > 0){
+        	pval <- CompQuadForm::liu(q = Q, lambda = lambda)
+    	}
+    	out.pval <- tryCatch(pchisq(-2*log(burden.pval)-2*log(pval), df=4, lower.tail = FALSE), error = function(e) { NA })
+    	if(is.na(out.pval)) err <- 1
+    	out <- list(pval_burden=burden.pval, pval_hybrid=out.pval, err=err)
+    	return(out)
+}
+	
+				       
+				       
 # function to calculate q_min value
 # basically a qchisqsum() function that takes the quantile/percentile and the lambda values
 # matches the first 2 moments and the kurtosis

@@ -828,6 +828,8 @@ assocTestSeqWindow <- function(seqData,
 
 				       
 .testVariantSetHybrid <- function(nullprep, G, weights, pval.method) {
+	out <- numeric(3)
+	names(out) <- c("pval_burden", "pval_hybrid", "err")
 	G <- t(t(G) * weights)
     	U <- as.vector(crossprod(G, nullprep$resid))
     	G <- crossprod(nullprep$Mt, G)
@@ -835,10 +837,15 @@ assocTestSeqWindow <- function(seqData,
     	burden.scores <- sum(U)
     	burden.distMat <- sum(V)
     	burden.pval <- pchisq(burden.scores^2/burden.distMat, df=1, lower.tail=FALSE)
+	out["pval_burden"] <- burden.pval
     	V.rowSums <- rowSums(V)
     	U <- U - V.rowSums * burden.scores / burden.distMat
     	V <- V - tcrossprod(V.rowSums) / burden.distMat
-    	if(mean(abs(V)) < sqrt(.Machine$double.eps)) return(list(pval_burden=burden.pval, pval_hybrid=burden.pval, err=0))
+    	if(mean(abs(V)) < sqrt(.Machine$double.eps)) {
+		out["pval_hybrid"] <- burden.pval
+		out["err"] <- 0
+		return(out)
+	}
     	Q <- sum(U^2)
     	# lambda for p value calculation
     	lambda <- eigen(V, only.values = TRUE, symmetric=TRUE)$values
@@ -867,7 +874,8 @@ assocTestSeqWindow <- function(seqData,
     	}
     	out.pval <- tryCatch(pchisq(-2*log(burden.pval)-2*log(pval), df=4, lower.tail = FALSE), error = function(e) { NA })
     	if(is.na(out.pval)) err <- 1
-    	out <- list(pval_burden=burden.pval, pval_hybrid=out.pval, err=err)
+    	out["pval_hybrid"] <- out.pval
+	out["err"] <- err
     	return(out)
 }
 	

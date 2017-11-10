@@ -518,7 +518,7 @@ assocTestSeqWindow <- function(seqData,
 	param[["mixedmodel"]] <- mixedmodel
 	
 	# check that test is valid
-	if(!is.element(test,c("Burden","SKAT"))){ stop("test must be Burden or SKAT") }
+	if(!is.element(test,c("Burden","SKAT","Hybrid"))){ stop("test must be Burden or SKAT or Hybrid") }
 	param[["test"]] <- test
 	if(test == "Burden"){
 		# check burden.test type
